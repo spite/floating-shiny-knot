@@ -1,0 +1,645 @@
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Floating Shiny Knot - Street View Panorama Reflection Mapping</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link rel="stylesheet" href="buttons.css" type="text/css" media="screen" title="no title" charset="utf-8">
+		<style>
+			html {
+				height: 100%;
+			}
+			body {
+				margin: 0;
+				padding: 0;
+				background: #000000;
+				color: #ffffff;
+				font-family: sans-serif;
+				font-size: 13px;
+				line-height: 20px;
+				height: 100%;
+				overflow: hidden
+			}
+			#container {
+				position: absolute;
+				left: 0;
+				top: 0;
+				right: 0;
+				bottom: 0;
+			}
+			a {
+				color: #fff;
+				text-decoration: none;
+				border-bottom: 1px dotted #fff;
+			}
+			a:hover {
+				border-bottom: 1px solid #fff
+			}
+			h1{ 
+				font: 24px Georgia; 
+				font-weight: bold;
+				margin: 0 0 .5em 0;
+			}
+			h2{ 
+				font: 16px Georgia; 
+				margin: 0 0 .5em 0;
+			}
+			.hide{
+				opacity: 1;
+				-webkit-transition: opacity .5s ease-out;
+				-moz-transition: opacity .5s ease-out;
+				-o-transition: opacity .5s ease-out;
+			}
+			#title {
+				position: absolute;
+				top: 20px;
+				width: 300px;
+				left: 20px;
+				background-color: rgba(0,0,0,0.2);
+				border-radius: 3px;
+				padding: 10px;
+				overflow: auto;
+			}
+			#options{
+				position: absolute;
+				top: 20px;
+				width: 300px;
+				right: 20px;
+				background-color: rgba(0,0,0,0.2);
+				border-radius: 3px;
+				padding: 10px;
+				overflow: hidden;
+			}
+			#map{ 
+				width: 300px; 
+				height: 200px; 
+				z-index: 100; 
+				-webkit-box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );
+				-moz-box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );
+				-o-box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );
+				box-shadow: 0px 0px 3px 3px rgba( 73, 73, 73, .2 );	
+			}
+			.button{ 
+				font-size: 11px 
+			}
+			#pano_form button{
+				float: left 
+			}
+			#map_form input{ 
+				background: rgba( 255,255,255,.5 ) url( search.png ) no-repeat 5px 50%; 
+				padding-left: 25px; 
+				width: 185px; 
+				height: 26px; 
+				border: 1px solid #444; 
+				margin-top: 2px
+			}
+			#map_form input:focus{ 
+				background-color: rgba( 255,255,255,.85 ); 
+				border: 1px solid black 
+			}
+			#map_form button{ 
+				width: 80px; 
+				float: right 
+			}
+			#preloader{
+				pointer-events: none;
+				width: 306px;
+				height: 36px;
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				margin-left: -153px;
+				margin-top: -18px;
+				background-color: rgba(255,255,255,0.8);
+				border-radius: 3px;
+				-webkit-transition: opacity 1s ease-out;
+				-moz-transition: opacity 1s ease-out;
+				-o-transition: opacity 1s ease-out;
+			}
+			#bar{
+				pointer-events: none;
+				height: 30px;
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				margin-left: -150px;
+				margin-top: -15px;
+				background-color: rgba(0,0,0,0.8);
+				border-radius: 3px;
+			}
+			.block{ 
+				position: relative;
+				line-height: 2.5em;
+				padding: 0;
+				margin: 5px 0 0 0;
+				display: block;
+			}
+			#error, #message{ line-height: 1.4em; margin-bottom: .5em }
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+		
+		<div id="title" class="hide">
+			<h1>Floating shiny knot</h1>
+			<h2>Millions of environment map textures with Google Street View panoramas</h2>
+			<p><b>Click and drag</b> the panorama viewer. <b>Mouse wheel</b> to zoom in and out. Use <b>search</b> box to find addresses, or <b>click on the map</b> to select a new location. Each location has a unique URL which you can share.</p>
+			<p>You'll need <a href="http://www.google.com/chrome" rel="external">Chrome</a>, <a href="http://mozilla.org/" rel="external">Firefox 8+</a>, or another browser that supports <a href="http://enable-cors.org/" rel="external">CORS</a> canvas textures.</p>
+			<p>Code by <a href="http://twitter.com/thespite" rel="external">@thespite</a> · Built with <a href="https://github.com/mrdoob/three.js" rel="external">three.js</a> · Tweaking and optimisations by <a href="http://twitter.com/mrdoob" rel="external" >Mr.doob</a> · Inspired on <a href="http://twitter.com/aerotwist" rel="external" >Paul Lewis'</a> <i><a href="http://aerotwist.com/tutorials/create-your-own-environment-maps" rel="external">Create your own environment maps</a></i> article.</p>
+			<g:plusone width="280"></g:plusone>
+			<script type="text/javascript">
+			  (function() {
+				var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+				po.src = 'https://apis.google.com/js/plusone.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+			  })();
+			</script><br/>
+			<a href="http://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="thespite">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+			<p><a href="http://clicktorelease.com/+" rel="external">Find me on google+</a> | <a href="http://clicktorelease.com/@" rel="external">Follow me on twitter</a></p>
+		</div>
+		
+		<div id="options" class="hide">
+				
+			<div id="map"></div>
+
+			<div class="block">
+				<form id="map_form">
+					<input type="text" name="address" id="address" />
+					<button type="submit" class="primary button" id="searchButton" >Search</button>
+				</form>
+			</div>
+			
+			<div class="block">
+				<button type="submit" id="myLocationButton" style="width: 148px" class="button">Use my location</button>
+				<button type="submit" id="fullscreenButton" style="width: 148px" class="button">Go fullscreen</button>
+			</div>
+			
+			<div class="block">
+				<button type="submit" id="reflectButton" style="width: 148px" class="button active">Chrome finish</button>
+				<button type="submit" id="refractButton" style="width: 148px" class="button">Glass finish</button>
+			</div>
+			
+			<div class="block" id="status" >
+				<div id="message" ></div>
+				<div id="error" ></div>
+			</div>
+			
+		</div>
+		
+		<div id="preloader" >
+			<div id="bar" ></div>
+		</div>
+		
+		<script src="js/Three.js"></script>
+		<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
+		<script src="GSVPano.js"></script>
+		
+		<script type="x-shader/x-vertex" id="vertexShader">
+		
+		varying vec3 vReflect;
+		varying vec3 vRefract;
+		
+		void main() {
+			vec4 mPosition = modelMatrix * vec4( position, 1.0 );
+			vec3 nWorld = normalize( mat3( modelMatrix[0].xyz, modelMatrix[1].xyz, modelMatrix[2].xyz ) * normal );
+			vReflect = normalize( reflect( normalize( mPosition.xyz - cameraPosition ), nWorld ) );
+			vRefract = normalize( refract( normalize( mPosition.xyz - cameraPosition ), nWorld, 0.9 ) );
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+		}
+
+		</script>
+		
+		<script type="x-shader/x-vertex" id="fragmentShader">
+		
+		uniform float rAmount;
+		uniform sampler2D texture;
+		uniform sampler2D scaledTexture;
+		varying vec3 vReflect;
+		varying vec3 vRefract;
+
+		void main(void) {
+			float PI = 3.14159265358979323846264;
+
+			float yaw = .5 - atan( vReflect.z, - vReflect.x ) / ( 2.0 * PI );
+			float pitch = .5 - asin( -vReflect.y ) / PI;
+			vec3 color = texture2D( scaledTexture, vec2( yaw, pitch ) ).rgb * ( 1.0 - rAmount );
+
+			yaw = .5 - atan( vRefract.z, - vRefract.x ) / ( 2.0 * PI );
+			pitch = .5 - asin( - vRefract.y ) / PI;
+			color += texture2D( texture, vec2( yaw, pitch ) ).rgb * rAmount;
+
+			gl_FragColor = vec4( color, 1.0 );
+		}
+
+		</script>
+		
+		<script>
+
+			var links = document.querySelectorAll( 'a[rel=external]' );
+			for( var j = 0; j < links.length; j++ ) {
+				var a = links[ j ];
+				a.addEventListener( 'click', function( e ) {
+					window.open( this.href, '_blank' );
+					e.preventDefault();
+				}, false );
+			}
+			
+			var loader,
+				map,
+				camera, 
+				scene, 
+				renderer,
+				sphere,
+				uniforms,
+				attributes,
+				container,
+				mesh,
+				marker,
+				torus;
+				
+			var container = document.getElementById( 'container' );
+			var preloader = document.getElementById( 'preloader' );
+			var bar = document.getElementById( 'bar' );
+			var options = document.getElementById( 'options' );
+			var title = document.getElementById( 'title' );
+			
+			var fov = 90,
+			texture_placeholder,
+			isUserInteracting = false,
+			onMouseDownMouseX = 0, onMouseDownMouseY = 0,
+			lon = 0, onMouseDownLon = 0,
+			lat = 0, onMouseDownLat = 0,
+			phi = 0, theta = 0;
+			lat = 15;
+
+			init();
+			animate();
+		
+			function setProgress( progress ) {
+				bar.style.width = ( preloader.clientWidth - 6 ) * progress / 100 + 'px';
+			}
+			
+			function showProgress( show ) {
+				preloader.style.opacity = ( show == true )?1:0;
+				preloader.style.display = ( show == true )?'block':'none';
+			}
+			
+			function geoSuccess( position ) {
+		
+			var currentLocation = new google.maps.LatLng( position.coords.latitude, position.coords.longitude );
+				map.panTo( currentLocation );
+				addMarker( currentLocation ); // move to position (thanks @theCole!)
+
+			}
+			
+			function geoError( message ) {
+				showError( message );
+			}
+			
+			function showError( message ) {
+				errorDiv.innerHTML = message;
+			}
+			
+			function showMessage( message ) {
+				showError('');
+				messageDiv.innerHTML = message;
+			}
+			
+			function init() {
+
+				container = document.getElementById( 'container' );
+
+				var locations = [
+					{ lat: 51.50700703827454, lng: -0.12791916931155356 },
+					{ lat: 32.6144404, lng: -108.9852017 },
+					{ lat: 39.36382677360614, lng: 8.431220278759724 },
+					{ lat: 59.30571937680209, lng: 4.879402148657164 },
+					{ lat: 28.240385123352873, lng: -16.629988706884774 },
+					{ lat: 50.09072314148827, lng: 14.393133454556278 },
+					{ lat: 41.413416092316275, lng: 2.1531126527786455 },
+					{ lat: 35.69143938066447, lng: 139.695139627539 },
+					{ lat: 35.67120372775569, lng: 139.77167914398797 },
+					{ lat: 54.552083679428065, lng: -3.297380963134742 },
+					{ lat: 42.216188, lng: -75.72657859999998 }
+				];
+				
+				var pos;
+				if( window.location.hash ) {
+					parts = window.location.hash.substr( 1 ).split( ',' );
+					pos = { lat: parts[ 0 ], lng: parts[ 1 ] };
+				} else {
+					pos = locations[ Math.floor( Math.random() * locations.length ) ];
+				}
+				var myLatlng = new google.maps.LatLng( pos.lat, pos.lng );
+				
+				var myOptions = {
+					zoom: 14,
+					center: myLatlng,
+					mapTypeId: google.maps.MapTypeId.ROADMAP,
+					streetViewControl: false
+				}
+				map = new google.maps.Map( document.getElementById( 'map' ), myOptions );
+				google.maps.event.addListener(map, 'click', function(event) {
+					addMarker(event.latLng);
+				});
+				
+				geocoder = new google.maps.Geocoder();
+				
+				scene = new THREE.Scene();
+
+				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 1, 1100 );
+				camera.target = new THREE.Vector3( 0, 0, 0 );
+				scene.add( camera );
+
+				var shadowMaterial = new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'shadow.png' ), transparent:true } );
+				var shadowGeo = new THREE.PlaneGeometry( 300, 300, 1, 1 );
+				plane = new THREE.Mesh( shadowGeo, shadowMaterial );
+				plane.position.y = - 150;
+				plane.rotation.x = - 90 * Math.PI / 180;
+				scene.add( plane );
+
+				mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'placeholder.jpg' ) } ) );
+				mesh.scale.x = -1;
+				scene.add( mesh );				
+				
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.sortObjects = false
+
+				container.appendChild( renderer.domElement );
+				
+				var shader = new THREE.ShaderMaterial( {
+					uniforms: {
+						texture: { type: 't', value: null },
+						scaledTexture: { type: 't', value: null },
+						rAmount: { type: 'f', value: 0.0 }
+					},
+					vertexShader: document.getElementById( 'vertexShader' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+				} );
+				
+				uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+				var material = new THREE.ShaderMaterial( {
+					fragmentShader: shader.fragmentShader,
+					vertexShader: shader.vertexShader,
+					uniforms: uniforms
+				} );
+				
+				torus = new THREE.Mesh( new THREE.TorusKnotGeometry( 30, 10, 200, 50, 1, 3 ), material );
+				scene.add( torus );
+				
+				container.addEventListener( 'mousedown', onMouseDown, false );
+				container.addEventListener( 'mousemove', onMouseMove, false );
+				container.addEventListener( 'mouseup', onMouseUp, false );
+				container.addEventListener( 'mousewheel', onMouseWheel, false );
+				container.addEventListener( 'DOMMouseScroll', onMouseWheel, false);
+				window.addEventListener( 'resize', onWindowResized, false );
+			
+				var reflectButton = document.getElementById( 'reflectButton' );
+				if( reflectButton ) {
+					reflectButton.addEventListener( 'click', function( e ) {
+						uniforms[ 'rAmount' ].value = 0.0;
+						reflectButton.className = 'button active';
+						refractButton.className = 'button';
+						e.preventDefault();
+					} );
+				}
+				
+				var refractButton = document.getElementById( 'refractButton' );
+				if( refractButton ) {
+					refractButton.addEventListener( 'click', function( e ) {
+						uniforms[ 'rAmount' ].value = 0.8;
+						reflectButton.className = 'button';
+						refractButton.className = 'button active';
+						e.preventDefault();
+					} );
+				}
+				
+				onWindowResized( null );
+			
+				loadPanorama( myLatlng );
+					
+				var el = document.getElementById( 'myLocationButton' );
+				el.addEventListener( 'click', function( event ) {
+					event.preventDefault();
+					navigator.geolocation.getCurrentPosition( geoSuccess, geoError );
+				}, false );
+				
+				navigator.pointer = navigator.pointer || navigator.webkitPointer;  
+				
+				function lockPointer () {
+					if( navigator.pointer ) {
+						navigator.pointer.lock( container, function() {  
+							console.log( 'Pointer locked' ); 
+						}, function() { 
+							console.log( 'No pointer lock' ); 
+						} );  
+					}
+				}
+				
+				var el = document.getElementById( 'fullscreenButton' );
+				if( el ) {
+					el.addEventListener( 'click', function( e ) {
+						container.onwebkitfullscreenchange = function(e) {
+							lockPointer();
+							container.onwebkitfullscreenchange = function() {
+							};
+						};
+						container.onmozfullscreenchange = function(e) {
+							lockPointer();
+							container.onmozfullscreenchange = function() {
+							};
+						};
+						if( container.webkitRequestFullScreen ) container.webkitRequestFullScreen();
+						if( container.mozRequestFullScreen ) container.mozRequestFullScreen();
+						e.preventDefault();
+					}, false );
+				}
+				
+				el = document.getElementById( 'searchButton' );
+				el.addEventListener( 'click', function( event ) {
+					event.preventDefault();
+					findAddress( document.getElementById("address").value );
+				}, false );
+				
+				errorDiv = document.getElementById( 'error' );
+				messageDiv = document.getElementById( 'message' );
+			}
+			
+			function findAddress( address ) {
+		
+				showMessage( 'Getting coordinates...' );
+				geocoder.geocode( { 'address': address}, function(results, status) {
+					if (status == google.maps.GeocoderStatus.OK) {
+						map.setCenter(results[0].geometry.location);
+						showMessage( 'Address found.' );
+						addMarker( results[0].geometry.location );
+					} else {
+						showError("Geocode was not successful for the following reason: " + status);
+						showProgress( false );
+					}
+				});
+			}
+			
+			function addMarker(location) {
+				if( marker ) marker.setMap( null );
+				marker = new google.maps.Marker({
+					position: location,
+					map: map
+				});
+				marker.setMap( map ); 
+				loadPanorama( location );
+			}
+			
+			function loadPanorama( location ) {
+			
+				setProgress( 0 );
+				showProgress( true );
+				
+				loader = new GSVPANO.PanoLoader( {
+					useWebGL: false,
+					zoom: 3
+				} );
+				loader.onSizeChange = function() { 
+					
+				};
+				loader.onProgress = function( p ) {
+					setProgress( p );
+				};
+				loader.onError = function( message ) {
+					showError( message );
+					showProgress( false );
+				};
+				loader.onPanoramaLoad = function() {
+					
+					window.location.hash = location.lat() + ',' + location.lng();
+				
+					mesh.material.map = new THREE.Texture( this.canvas ); 
+					mesh.material.map.needsUpdate = true;
+					
+					var canvas = document.createElement( 'canvas' );
+					var s = 10;
+					canvas.width = this.canvas.width / s;
+					canvas.height = this.canvas.height / s;
+					var ctx = canvas.getContext( '2d' );
+					ctx.drawImage( this.canvas, 0, 0, this.canvas.width, this.canvas.height, 0, 0, canvas.width, canvas.height );
+					
+					uniforms.texture.value = new THREE.Texture( this.canvas );
+					uniforms.texture.value.needsUpdate = true;
+					uniforms.scaledTexture.value = new THREE.Texture( canvas );
+					uniforms.scaledTexture.value.needsUpdate = true;
+					
+					showMessage( 'Street view data ' + this.copyright + '.' );
+					
+					showProgress( false );
+				};
+
+				loader.load( location );
+				
+			}
+			
+			function onWindowResized( event ) {
+				renderer.setSize( container.clientWidth, container.clientHeight );
+				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
+			}
+
+			function onMouseDown( event ) {
+
+				title.style.opacity = 0;
+				title.style.pointerEvents = 'none';
+				options.style.opacity = 0;
+				options.style.pointerEvents = 'none';
+								
+				event.preventDefault();
+
+				isUserInteracting = true;
+
+				onPointerDownPointerX = event.clientX;
+				onPointerDownPointerY = event.clientY;
+
+				onPointerDownLon = lon;
+				onPointerDownLat = lat;
+
+			}
+
+			function onMouseMove( event ) {
+
+				if ( isUserInteracting ) {
+
+					lon = ( event.clientX - onPointerDownPointerX ) * 0.1 + onPointerDownLon;
+					lat = ( event.clientY - onPointerDownPointerY ) * 0.1 + onPointerDownLat;
+
+				}
+				
+			}
+
+			function onMouseUp( event ) {
+
+				title.style.opacity = 1;
+				title.style.pointerEvents = 'auto';
+				options.style.opacity = 1;
+				options.style.pointerEvents = 'auto';
+				
+				isUserInteracting = false;
+				
+			}
+
+			function onMouseWheel( event ) {
+
+				// WebKit
+
+				if ( event.wheelDeltaY ) {
+
+					fov -= event.wheelDeltaY * 0.05;
+
+				// Opera / Explorer 9
+
+				} else if ( event.wheelDelta ) {
+
+					fov -= event.wheelDelta * 0.05;
+
+				// Firefox
+
+				} else if ( event.detail ) {
+
+					fov += event.detail * 1.0;
+
+				}
+
+				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
+				
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				render();
+
+			}
+
+			function render() {
+				
+				if( !isUserInteracting ) {
+					torus.rotation.x += .01;
+					lon += .15;
+				}
+				lat = Math.max( - 85, Math.min( 85, lat ) );
+				phi = ( 90 - lat ) * Math.PI / 180;
+				theta = lon * Math.PI / 180;
+
+				camera.position.x = 100 * Math.sin( phi ) * Math.cos( theta );
+				camera.position.y = 100 * Math.cos( phi );
+				camera.position.z = 100 * Math.sin( phi ) * Math.sin( theta );
+				
+				camera.lookAt( camera.target );
+				
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	
+	</body>
+</html>

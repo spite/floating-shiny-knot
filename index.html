@@ -6,6 +6,7 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link rel="stylesheet" href="buttons.css" type="text/css" media="screen" title="no title" charset="utf-8">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 		<style>
 			html {
 				height: 100%;
@@ -148,16 +149,8 @@
 			<p><b>Click and drag</b> the panorama viewer. <b>Mouse wheel</b> to zoom in and out. Use <b>search</b> box to find addresses, or <b>click on the map</b> to select a new location. Each location has a unique URL which you can share.</p>
 			<p>You'll need <a href="http://www.google.com/chrome" rel="external">Chrome</a>, <a href="http://mozilla.org/" rel="external">Firefox 8+</a>, or another browser that supports <a href="http://enable-cors.org/" rel="external">CORS</a> canvas textures.</p>
 			<p>Code by <a href="http://twitter.com/thespite" rel="external">@thespite</a> · Built with <a href="https://github.com/mrdoob/three.js" rel="external">three.js</a> · Tweaking and optimisations by <a href="http://twitter.com/mrdoob" rel="external" >Mr.doob</a> · Inspired on <a href="http://twitter.com/aerotwist" rel="external" >Paul Lewis'</a> <i><a href="http://aerotwist.com/tutorials/create-your-own-environment-maps" rel="external">Create your own environment maps</a></i> article.</p>
-			<g:plusone width="280"></g:plusone>
-			<script type="text/javascript">
-			  (function() {
-				var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-				po.src = 'https://apis.google.com/js/plusone.js';
-				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-			  })();
-			</script><br/>
-			<a href="http://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="thespite">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
-			<p><a href="http://clicktorelease.com/+" rel="external">Find me on google+</a> | <a href="http://clicktorelease.com/@" rel="external">Follow me on twitter</a></p>
+			<a href="https://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="thespite">Tweet</a><script type="text/javascript" src="https://platform.twitter.com/widgets.js"></script>
+			<p><a href="https://twitter.com/thespite" rel="external">Follow me on twitter</a></p>
 		</div>
 		
 		<div id="options" class="hide">
@@ -193,8 +186,9 @@
 		</div>
 		
 		<script src="js/Three.js"></script>
-		<script src="http://maps.google.com/maps/api/js?sensor=false"></script>
-		<script src="GSVPano.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+		<!-- only to find the panorama nearest to a location, which works without an API key -->
+		<script src="https://maps.google.com/maps/api/js"></script>
 		
 		<script type="x-shader/x-vertex" id="vertexShader">
 		
@@ -273,6 +267,9 @@
 			lat = 0, onMouseDownLat = 0,
 			phi = 0, theta = 0;
 			lat = 15;
+			// counts the panoramas asked for, so only the last one is shown
+			var panoramaRequest = 0;
+			var lastTime = performance.now();
 
 			init();
 			animate();
@@ -288,7 +285,7 @@
 			
 			function geoSuccess( position ) {
 		
-			var currentLocation = new google.maps.LatLng( position.coords.latitude, position.coords.longitude );
+			var currentLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
 				map.panTo( currentLocation );
 				addMarker( currentLocation ); // move to position (thanks @theCole!)
 
@@ -332,20 +329,18 @@
 				} else {
 					pos = locations[ Math.floor( Math.random() * locations.length ) ];
 				}
-				var myLatlng = new google.maps.LatLng( pos.lat, pos.lng );
+				var myLatlng = { lat: Number( pos.lat ), lng: Number( pos.lng ) };
+
+				// OpenStreetMap, as a Google map needs an API key
+				map = L.map( 'map' ).setView( myLatlng, 14 );
+				L.tileLayer( 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					maxZoom: 19,
+					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				} ).addTo( map );
+				map.on( 'click', function( event ) {
+					addMarker( { lat: event.latlng.lat, lng: event.latlng.lng } );
+				} );
 				
-				var myOptions = {
-					zoom: 14,
-					center: myLatlng,
-					mapTypeId: google.maps.MapTypeId.ROADMAP,
-					streetViewControl: false
-				}
-				map = new google.maps.Map( document.getElementById( 'map' ), myOptions );
-				google.maps.event.addListener(map, 'click', function(event) {
-					addMarker(event.latLng);
-				});
-				
-				geocoder = new google.maps.Geocoder();
 				
 				scene = new THREE.Scene();
 
@@ -458,8 +453,8 @@
 					}, false );
 				}
 				
-				el = document.getElementById( 'searchButton' );
-				el.addEventListener( 'click', function( event ) {
+				// the button, or Enter in the box
+				document.getElementById( 'map_form' ).addEventListener( 'submit', function( event ) {
 					event.preventDefault();
 					findAddress( document.getElementById("address").value );
 				}, false );
@@ -468,78 +463,88 @@
 				messageDiv = document.getElementById( 'message' );
 			}
 			
+			// OpenStreetMap's Nominatim, as Google's geocoder needs an API key
 			function findAddress( address ) {
-		
+
 				showMessage( 'Getting coordinates...' );
-				geocoder.geocode( { 'address': address}, function(results, status) {
-					if (status == google.maps.GeocoderStatus.OK) {
-						map.setCenter(results[0].geometry.location);
+				fetch( 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent( address ) )
+					.then( function( response ) { return response.json(); } )
+					.then( function( results ) {
+						if ( results.length === 0 ) {
+							showError( 'Could not find that address.' );
+							return;
+						}
+						var location = { lat: Number( results[ 0 ].lat ), lng: Number( results[ 0 ].lon ) };
+						map.setView( location );
 						showMessage( 'Address found.' );
-						addMarker( results[0].geometry.location );
-					} else {
-						showError("Geocode was not successful for the following reason: " + status);
-						showProgress( false );
-					}
-				});
+						addMarker( location );
+					} )
+					.catch( function( e ) {
+						showError( 'Could not search for that address: ' + e.message );
+					} );
 			}
-			
+
 			function addMarker(location) {
-				if( marker ) marker.setMap( null );
-				marker = new google.maps.Marker({
-					position: location,
-					map: map
-				});
-				marker.setMap( map ); 
+				if( marker ) marker.remove();
+				marker = L.marker( location ).addTo( map );
 				loadPanorama( location );
 			}
 			
-			function loadPanorama( location ) {
-			
+			async function loadPanorama( location ) {
+
+				// a newer request wins over one that is still loading
+				var request = ++ panoramaRequest;
+
 				setProgress( 0 );
 				showProgress( true );
-				
-				loader = new GSVPANO.PanoLoader( {
-					useWebGL: false,
-					zoom: 3
-				} );
-				loader.onSizeChange = function() { 
-					
-				};
-				loader.onProgress = function( p ) {
-					setProgress( p );
-				};
-				loader.onError = function( message ) {
-					showError( message );
-					showProgress( false );
-				};
-				loader.onPanoramaLoad = function() {
-					
-					window.location.hash = location.lat() + ',' + location.lng();
-				
-					mesh.material.map = new THREE.Texture( this.canvas ); 
+
+				try {
+
+					var PanomNom = await import( './PanomNom.module.js' );
+
+					// only Google's own panoramas: the ones that people upload are not served as Street View tiles
+					var result = await new google.maps.StreetViewService().getPanorama( {
+						location: location,
+						radius: 50,
+						sources: [ google.maps.StreetViewSource.GOOGLE ]
+					} );
+
+					loader = new PanomNom.GoogleStreetViewLoader();
+					loader.onProgress( setProgress );
+					await loader.load( result.data.location.pano, 3 );
+
+					if ( request !== panoramaRequest ) return;
+
+					window.location.hash = location.lat + ',' + location.lng;
+
+					mesh.material.map = new THREE.Texture( loader.canvas );
 					mesh.material.map.needsUpdate = true;
-					
+
 					var canvas = document.createElement( 'canvas' );
 					var s = 10;
-					canvas.width = this.canvas.width / s;
-					canvas.height = this.canvas.height / s;
+					canvas.width = loader.canvas.width / s;
+					canvas.height = loader.canvas.height / s;
 					var ctx = canvas.getContext( '2d' );
-					ctx.drawImage( this.canvas, 0, 0, this.canvas.width, this.canvas.height, 0, 0, canvas.width, canvas.height );
-					
-					uniforms.texture.value = new THREE.Texture( this.canvas );
+					ctx.drawImage( loader.canvas, 0, 0, loader.canvas.width, loader.canvas.height, 0, 0, canvas.width, canvas.height );
+
+					uniforms.texture.value = new THREE.Texture( loader.canvas );
 					uniforms.texture.value.needsUpdate = true;
 					uniforms.scaledTexture.value = new THREE.Texture( canvas );
 					uniforms.scaledTexture.value.needsUpdate = true;
-					
-					showMessage( 'Street view data ' + this.copyright + '.' );
-					
-					showProgress( false );
-				};
 
-				loader.load( location );
-				
+					showMessage( 'Street view data ' + result.data.copyright + '.' );
+
+				} catch ( e ) {
+
+					if ( request !== panoramaRequest ) return;
+					showError( e.code === 'ZERO_RESULTS' ? 'There is no Street View near there.' : e.message );
+
+				}
+
+				if ( request === panoramaRequest ) showProgress( false );
+
 			}
-			
+
 			function onWindowResized( event ) {
 				renderer.setSize( container.clientWidth, container.clientHeight );
 				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, 1, 10000 );
@@ -620,10 +625,15 @@
 			}
 
 			function render() {
-				
+
+				// frames of 60Hz that have passed, so it moves at the same speed at any refresh rate
+				var now = performance.now();
+				var frames = Math.min( 6, ( now - lastTime ) * .06 );
+				lastTime = now;
+
 				if( !isUserInteracting ) {
-					torus.rotation.x += .01;
-					lon += .15;
+					torus.rotation.x += .01 * frames;
+					lon += .15 * frames;
 				}
 				lat = Math.max( - 85, Math.min( 85, lat ) );
 				phi = ( 90 - lat ) * Math.PI / 180;

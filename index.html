@@ -136,7 +136,9 @@
 				margin: 5px 0 0 0;
 				display: block;
 			}
-			#error, #message{ line-height: 1.4em; margin-bottom: .5em }
+			#error, #message{ line-height: 1.4em; margin-bottom: .5em; overflow-wrap: anywhere; }
+			#newer{ background-color: rgba( 255, 255, 255, .9 ); color: #000; border-radius: 3px; padding: 8px 10px; margin: 0 0 1em 0; line-height: 1.4em; }
+			#newer a{ color: #000; border-bottom-color: #000; font-weight: bold; }
 		</style>
 	</head>
 	<body>
@@ -146,6 +148,7 @@
 		<div id="title" class="hide">
 			<h1>Floating shiny knot</h1>
 			<h2>Millions of environment map textures with Google Street View panoramas</h2>
+			<p id="newer">This is the original version, from 2012. There's a new one, with better shading, normal mapping and refraction: <a href="https://spite.github.io/FloatingShinyKnot/">see the 2022 remake</a>.</p>
 			<p><b>Click and drag</b> the panorama viewer. <b>Mouse wheel</b> to zoom in and out. Use <b>search</b> box to find addresses, or <b>click on the map</b> to select a new location. Each location has a unique URL which you can share.</p>
 			<p>You'll need <a href="http://www.google.com/chrome" rel="external">Chrome</a>, <a href="http://mozilla.org/" rel="external">Firefox 8+</a>, or another browser that supports <a href="http://enable-cors.org/" rel="external">CORS</a> canvas textures.</p>
 			<p>Code by <a href="http://twitter.com/thespite" rel="external">@thespite</a> · Built with <a href="https://github.com/mrdoob/three.js" rel="external">three.js</a> · Tweaking and optimisations by <a href="http://twitter.com/mrdoob" rel="external" >Mr.doob</a> · Inspired on <a href="http://twitter.com/aerotwist" rel="external" >Paul Lewis'</a> <i><a href="http://aerotwist.com/tutorials/create-your-own-environment-maps" rel="external">Create your own environment maps</a></i> article.</p>
